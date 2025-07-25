@@ -26,8 +26,8 @@ const AuthFormSchema = (type : formtype) => {
 
 
 const AuthForm = ({type} : {type: formtype}) => {
-    const [isloading, setIsLoading] = useState(false); // set
-    const [errorMessage, setErrorMessage] = useState('');
+    const [isloading] = useState(false); // setIsLoading
+    const [errorMessage] = useState(''); // setErrorMessage
     const formSchema = AuthFormSchema(type);
     const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
