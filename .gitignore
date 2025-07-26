@@ -1,1 +1,26 @@
 server/venv/
+# Environment variables
+.env
+.env.*.local # For frameworks that use specific local env files (e.g., .env.development.local)
+
+# Python specific ignores
+_pycache_/
+*.pyc
+.venv/ 
+
+# Virtual environments
+venv/
+.pytest_cache/
+.mypy_cache/
+
+# IDE specific files (e.g., VS Code)
+.vscode/
+!/.vscode/extensions.json # Optional: keep extensions.json for team collaboration
+
+# Logs and temporary files
+*.log
+*.sqlite3 # If you use SQLite for local dev
+/tmp/
+
+# Vercel specific build output
+.vercel/
