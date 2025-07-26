@@ -20,8 +20,8 @@ type formtype = 'signin' | 'signup';
 const AuthFormSchema = (type : formtype) => {
   return z.object({
     FullName : type === 'signup' ? z.string().min(2).max(50) : z.string().optional(),
-    Phone_no: z.number().min(10).max(10),
-  })
+      Phone_no: z.string().regex(/^\d{10}$/, "Enter a valid 10-digit phone number")
+    })
 }
 
 
@@ -33,7 +33,7 @@ const AuthForm = ({type} : {type: formtype}) => {
     resolver: zodResolver(formSchema),
     defaultValues: {
         FullName: "",
-        Phone_no: undefined,
+        Phone_no: "",
     },
     });
 
@@ -71,7 +71,7 @@ const AuthForm = ({type} : {type: formtype}) => {
                 <div > 
                     <FormLabel >Phone Number</FormLabel>
                     <FormControl>
-                        <Input placeholder="Enter your number" {...field} />
+                        <Input type="tel" placeholder="Enter your number" {...field} />
                     </FormControl>
                 </div>
 
