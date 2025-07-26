@@ -2,6 +2,8 @@ import { createBrowserRouter, RouterProvider} from 'react-router'
 import AuthLayout from './auth/AuthLayout'
 import SignIn from './auth/signin'
 import SignUp from './auth/signup'
+import Dashboard from './components/dashboard'
+import { Navigate } from 'react-router';
 
 function App() {
   const router = createBrowserRouter([
@@ -17,7 +19,15 @@ function App() {
           element: <SignIn />,
         }
       ]
-    }
+    },
+    {
+    path: "/dashboard",
+    element: <Dashboard />,
+  },
+  {
+    path: "*",
+    element: <Navigate to="/signin" replace />,
+  }
   ])
   return (
     <>

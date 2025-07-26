@@ -1,14 +1,14 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-import re
+from pydantic import BaseModel, EmailStr
+import random
+import time
 
 app = FastAPI()
 
-# CORS configuration to allow frontend access
+# Configure CORS
 origins = [
-    "http://localhost:5173",
-    "https://*.vercel.app"
+    "http://localhost:5173"  # Adjust this to your frontend URL
 ]
 
 app.add_middleware(
@@ -19,100 +19,95 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Temporary storage for OTPs (in production, use a database)
+otp_storage = {}
+
 # Request models
 class SignupRequest(BaseModel):
     name: str
-    phone_number: str
+    email: EmailStr
 
 class LoginRequest(BaseModel):
-    phone_number: str
+    email: EmailStr
 
 class VerifyOTPRequest(BaseModel):
-    phone_number: str
+    email: EmailStr
     otp: str
 
-class AuthResponse(BaseModel):
-    success: bool
-    message: str
-    session_token: str = ''
+# Helper function to generate OTP
+def generate_otp() -> str:
+    return str(random.randint(100000, 999999))
 
-# Helper function for phone validation
-def validate_phone_number(phone: str) -> str:
-    """Format and validate phone number without persistence"""
-    # Remove non-digit characters
-    digits = re.sub(r"\D", "", phone)
-    
-    # Add international prefix if missing
-    if not digits.startswith("+"):
-        digits = f"+{digits}"
-    
-    # Simple validation
-    if len(digits) < 8:
-        raise ValueError("Phone number too short")
-    
-    return digits
-
-@app.post("/signup", response_model=AuthResponse)
+@app.post("/signup")
 async def signup(user_data: SignupRequest):
-    """Signup endpoint that doesn't store any data"""
-    try:
-        # Validate and format phone number
-        phone = validate_phone_number(user_data.phone_number)
-        
-        # In a real implementation, you would store the user here
-        # But we're not storing anything for this demo
-        
-        # Return success response
-        return {
-            "success": True,
-            "message": f"Account created for {user_data.name}. Please verify with OTP.",
-            "session_token": "demo_session_token"
-        }
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    # In a real application, you would:
+    # 1. Check if email is already registered
+    # 2. Store user in database
+    # 3. Send verification email with OTP
+    
+    # Generate OTP
+    otp = generate_otp()
+    otp_storage[user_data.email] = {
+        "otp": otp,
+        "expires": time.time() + 300  # 5 minutes
+    }
+    
+    # Print OTP to console for development purposes
+    print(f"OTP for {user_data.email}: {otp}")
+    
+    return {
+        "success": True,
+        "message": "Verification code sent to your email"
+    }
 
-@app.post("/login", response_model=AuthResponse)
+@app.post("/login")
 async def login(login_data: LoginRequest):
-    """Login endpoint that doesn't store any data"""
-    try:
-        # Validate and format phone number
-        phone = validate_phone_number(login_data.phone_number)
-        
-        # In a real implementation, you would verify the user exists
-        # But we're not storing anything so we'll assume any valid number exists
-        
-        # Return success response
-        return {
-            "success": True,
-            "message": "OTP sent to your phone. Please verify.",
-            "session_token": "demo_session_token"
-        }
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    # In a real application, you would:
+    # 1. Check if email exists
+    # 2. Verify password (if using password authentication)
+    
+    # Generate OTP
+    otp = generate_otp()
+    otp_storage[login_data.email] = {
+        "otp": otp,
+        "expires": time.time() + 300  # 5 minutes
+    }
+    
+    # Print OTP to console for development purposes
+    print(f"OTP for {login_data.email}: {otp}")
+    
+    return {
+        "success": True,
+        "message": "Verification code sent to your email"
+    }
 
-@app.post("/verify-otp", response_model=AuthResponse)
+@app.post("/verify-otp")
 async def verify_otp(otp_data: VerifyOTPRequest):
-    """OTP verification endpoint that doesn't store any data"""
-    try:
-        # Validate and format phone number
-        phone = validate_phone_number(otp_data.phone_number)
-        
-        # Simple OTP validation (any 6-digit number is valid)
-        if not otp_data.otp.isdigit() or len(otp_data.otp) != 6:
-            raise ValueError("Invalid OTP format. Must be 6 digits.")
-        
-        # In a real implementation, you would verify the OTP
-        # But for this demo, we'll accept any 6-digit number
-        
-        # Return success response
-        return {
-            "success": True,
-            "message": "Phone number verified successfully!",
-            "session_token": "verified_session_token"
-        }
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    # Check if OTP exists and hasn't expired
+    stored_otp = otp_storage.get(otp_data.email)
+    if not stored_otp:
+        raise HTTPException(status_code=400, detail="OTP expired or not requested")
+    
+    if stored_otp["expires"] < time.time():
+        del otp_storage[otp_data.email]
+        raise HTTPException(status_code=400, detail="OTP expired")
+    
+    # Verify OTP
+    if stored_otp["otp"] != otp_data.otp:
+        raise HTTPException(status_code=400, detail="Invalid OTP")
+    
+    # Cleanup
+    del otp_storage[otp_data.email]
+    
+    # Generate session token (in production, use JWT)
+    session_token = f"session_{random.randint(100000, 999999)}"
+    
+    return {
+        "success": True,
+        "message": "Authentication successful",
+        "session_token": session_token
+    }
 
 @app.get("/")
 def health_check():
-    return {"status": "healthy", "message": "Authentication API is running"}
+    return {"status": "running", "service": "email-auth-api"}
