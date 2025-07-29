@@ -1,4 +1,6 @@
 from pydantic import BaseModel, EmailStr
+from datetime import datetime
+from typing import Optional
 
 class User(BaseModel):
     user_id: str
@@ -6,6 +8,6 @@ class User(BaseModel):
     email: EmailStr
     otp_key: str
     email_verified: bool
-    verified: bool 
-    created_at: str
-    expire_at: str | None  
+    Account_verified: bool 
+    created_at: datetime
+    expired_at: Optional[datetime] = None  

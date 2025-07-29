@@ -1,22 +1,27 @@
 from fastapi import HTTPException, Depends, APIRouter
 from datetime import datetime, timedelta
-from verification import send_otp, verify_otp
-from mongo import get_db
-from models import User
-from schemas import UserSignup, UserLogin, VerifyOTP
+from ..verification import send_otp, verify_otp
+from ..mongo import get_db
+from ..models import User
+from ..schemas import UserSignup, UserLogin, VerifyOTP
 from pymongo import MongoClient
-from Oauth2 import create_access_token
+from pymongo.database import Database
+from ..Oauth2 import create_access_token
 import random
+import os
 
 router = APIRouter(
     tags=["auth"]
 )
 
+
 def create_user_id(name: str, db: MongoClient) -> str:
     """Generate a unique user ID with retry logic"""
     max_attempts = 5
     for _ in range(max_attempts):
-        user_id = f"{name.lower().replace(' ', '')}@{random.randint(10000, 99999)}"
+        user_name = name.lower().replace(" ", "")
+        random_number = random.randint(10000, 99999)
+        user_id = user_name + "@" + str(random_number)
         if not db['users'].find_one({"user_id": user_id}):
             return user_id
     raise HTTPException(status_code=500, detail="Failed to generate unique user ID")
@@ -31,7 +36,7 @@ async def signup(user: UserSignup, db: MongoClient = Depends(get_db)):
     # Generate and send OTP
     otp_key = await send_otp(user.email)
     user_id = create_user_id(user.name, db)
-    expire_at = datetime.now()  + timedelta(minutes=30) # Placeholder for expiration logic if needed
+    expire_at = datetime.now()  + timedelta(seconds=30) # Placeholder for expiration logic if needed
     # Create user document
     user_data = User(
         user_id=user_id,
@@ -39,8 +44,9 @@ async def signup(user: UserSignup, db: MongoClient = Depends(get_db)):
         email=user.email,
         otp_key=otp_key,
         email_verified=False,
+        Account_verified=False,
         created_at=datetime.now(),
-        expire_at=expire_at
+        expired_at=expire_at
     ).model_dump()
     
     users_collection.insert_one(user_data)
@@ -63,7 +69,7 @@ async def verify_signup(verify: VerifyOTP, db: MongoClient = Depends(get_db)):
     # Update verification status
     users_collection.update_one(
         {"email": verify.email},
-        {"$set": {"email_verified": True}}
+        {"$set": {"email_verified": True}, "$set": {"expired_at": None}}
     )
     return {"message": "Email verification successful"}
 
@@ -99,3 +105,16 @@ async def verify_login(verify: VerifyOTP, db: MongoClient = Depends(get_db)):
     # Generate JWT
     token = create_access_token(data={"sub": user["user_id"]})
     return {"access_token": token, "token_type": "Bearer"}
+"""
+import asyncio
+
+if __name__ == "__main__":
+    MONGO_URI = os.getenv("MONGO_URI")
+    mongo_client = MongoClient(MONGO_URI)  # Create a MongoClient instance
+    data = mongo_client["nexus"]  # Access the database
+    async def main():
+        user_id = await create_user_id("John Doe", data)
+        print(user_id)
+    asyncio.run(main())
+
+    """
