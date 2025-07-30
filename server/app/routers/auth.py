@@ -1,5 +1,5 @@
 from fastapi import HTTPException, Depends, APIRouter
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from ..verification import send_otp, verify_otp
 from ..mongo import get_db
 from ..models import User
@@ -45,7 +45,7 @@ async def signup(user: UserSignup, db: MongoClient = Depends(get_db)):
         otp_key=otp_key,
         email_verified=False,
         Account_verified=False,
-        created_at=datetime.now(),
+        created_at=datetime.now(timezone.utc),
         expired_at=expire_at
     ).model_dump()
     
