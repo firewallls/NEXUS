@@ -11,3 +11,10 @@ class UserLogin(BaseModel):
 class VerifyOTP(BaseModel):
     email: EmailStr
     otp: str
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    semail: EmailStr 

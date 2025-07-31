@@ -5,10 +5,8 @@ from ..mongo import get_db
 from ..models import User
 from ..schemas import UserSignup, UserLogin, VerifyOTP
 from pymongo import MongoClient
-from pymongo.database import Database
 from ..Oauth2 import create_access_token
 import random
-import os
 
 router = APIRouter(
     tags=["auth"]
@@ -103,7 +101,7 @@ async def verify_login(verify: VerifyOTP, db: MongoClient = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Invalid OTP")
     
     # Generate JWT
-    token = create_access_token(data={"sub": user["user_id"]})
+    token = create_access_token(data={"sub": user["user_id"]}, expiry_time_in_min=30)
     return {"access_token": token, "token_type": "Bearer"}
 """
 import asyncio
