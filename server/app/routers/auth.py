@@ -34,7 +34,7 @@ async def signup(user: UserSignup, db: MongoClient = Depends(get_db)):
     # Generate and send OTP
     otp_key = await send_otp(user.email)
     user_id = create_user_id(user.name, db)
-    expire_at = datetime.now()  + timedelta(seconds=30) # Placeholder for expiration logic if needed
+    expire_at = datetime.now(timezone.utc)  + timedelta(seconds=30) # Placeholder for expiration logic if needed
     # Create user document
     user_data = User(
         user_id=user_id,
@@ -103,16 +103,3 @@ async def verify_login(verify: VerifyOTP, db: MongoClient = Depends(get_db)):
     # Generate JWT
     token = create_access_token(data={"sub": user["user_id"]}, expiry_time_in_min=30)
     return {"access_token": token, "token_type": "Bearer"}
-"""
-import asyncio
-
-if __name__ == "__main__":
-    MONGO_URI = os.getenv("MONGO_URI")
-    mongo_client = MongoClient(MONGO_URI)  # Create a MongoClient instance
-    data = mongo_client["nexus"]  # Access the database
-    async def main():
-        user_id = await create_user_id("John Doe", data)
-        print(user_id)
-    asyncio.run(main())
-
-    """
